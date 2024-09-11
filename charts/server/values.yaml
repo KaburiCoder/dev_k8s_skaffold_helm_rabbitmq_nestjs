@@ -1,0 +1,10 @@
+replicaCount: 1
+
+image:
+  repository: server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3001

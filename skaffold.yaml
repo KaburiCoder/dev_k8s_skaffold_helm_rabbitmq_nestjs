@@ -1,0 +1,61 @@
+apiVersion: skaffold/v2beta26
+kind: Config
+metadata:
+  name: server
+build:
+  artifacts:
+    - image: server
+      context: server # Dockerfile이 위치한 폴더
+      docker:
+        dockerfile: Dockerfile # server 폴더 안에 있는 Dockerfile
+    - image: server2
+      context: server2 # Dockerfile이 위치한 폴더
+      docker:
+        dockerfile: Dockerfile # server2 폴더 안에 있는 Dockerfile
+  tagPolicy:
+    sha256: {} # 이미지 태그는 이미지의 SHA로 결정
+deploy:
+  helm:
+    releases:
+      - name: server-release
+        chartPath: charts/server # Helm 차트 경로
+        valuesFiles:
+          - charts/server/values.yaml # Helm values 파일 경로
+        setValues:
+          image.repository: server # 빌드된 이미지 설정
+          image.tag: "latest" # 이미지를 Docker SHA256 태그로 설정
+        namespace: default # 네임스페이스를 기본값으로 사용
+      - name: server2-release
+        chartPath: charts/server2 # Helm 차트 경로
+        valuesFiles:
+          - charts/server2/values.yaml # Helm values 파일 경로
+        setValues:
+          image.repository: server2 # 빌드된 이미지 설정
+          image.tag: "latest" # 이미지를 Docker SHA256 태그로 설정
+        namespace: default # 네임스페이스를 기본값으로 사용
+      - name: rabbitmq
+        chartPath: charts/rabbitmq # Helm 차트 경로
+        valuesFiles:
+          - charts/rabbitmq/values.yaml # Helm values 파일 경로
+        setValues:
+          image.repository: bitnami/rabbitmq # Bitnami RabbitMQ 이미지 사용
+          image.tag: "latest" # Bitnami의 최신 태그 사용
+        namespace: default # 네임스페이스를 기본값으로 사용
+
+profiles:
+  - name: dev
+    build:
+      local:
+        push: false # 로컬 클러스터에서는 이미지를 레지스트리에 푸시하지 않음
+    deploy:
+      helm:
+        releases:
+          - name: server-release
+            setValues:
+              image.pullPolicy: IfNotPresent # 개발 시에는 로컬 이미지 사용
+          - name: server2-release
+            setValues:
+              image.pullPolicy: IfNotPresent # 개발 시에는 로컬 이미지 사용
+          - name: rabbitmq
+            setValues:
+              image.pullPolicy: IfNotPresent # 개발 시에는 로컬 이미지 사용
